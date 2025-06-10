@@ -1,0 +1,23 @@
+# Database
+mysql-connector-python>=8.0.0
+tabulate>=0.9.0
+db-dtypes>=0.1.0
+google-cloud-bigquery>=3.20.0
+
+# Google Cloud and AI
+google-adk>=0.3.0  # For Google Agent Development Kit
+google-cloud-aiplatform>=1.36.0  # For Google AI Platform
+google-genai>=0.3.0  # For Google Generative AI
+
+# Environment and Utilities
+python-dotenv>=1.0.0  # For environment variables
+pathlib>=1.0.1  # For path handling
+
+# Machine Learning
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+torch>=2.0.0
+
+# Testing
+pytest>=7.0.0  # For running tests
