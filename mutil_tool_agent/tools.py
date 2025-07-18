@@ -325,3 +325,4 @@ def run_bigquery_validation(
     print("\n run_bigquery_validation final_result: \n", final_result)
 
     return final_result
+

@@ -25,6 +25,7 @@ load_dotenv(dotenv_path=env_path)
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.genai import types
+from google.adk.tools.google_api_tool import CalendarToolset
 
 from . import tools
 # from .chase_sql import chase_db_tools
