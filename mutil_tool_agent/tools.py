@@ -20,7 +20,7 @@ import os
 import re
 from pathlib import Path
 from dotenv import load_dotenv
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent / '.env'
@@ -325,3 +325,161 @@ def run_bigquery_validation(
     print("\n run_bigquery_validation final_result: \n", final_result)
 
     return final_result
+
+def display_results_as_table(final_result: Dict[str, Any], relevant_columns: Optional[List[str]] = None) -> str:
+    """
+    Display BigQuery results as a formatted table.
+    
+    Args:
+        final_result: The result dictionary from run_bigquery_validation or agent
+        relevant_columns: List of column names to display. If None, shows all columns.
+        
+    Returns:
+        str: Formatted table string
+    """
+    # Handle different result structures
+    rows = None
+    error_message = None
+    
+    # Check for run_bigquery_validation structure
+    if "query_result" in final_result:
+        rows = final_result.get("query_result")
+        error_message = final_result.get("error_message")
+    # Check for agent structure
+    elif "sql_results" in final_result:
+        rows = final_result.get("sql_results")
+        error_message = final_result.get("error_message")
+    
+    if not rows:
+        return "No results to display"
+    
+    if not rows:
+        return "No data rows found"
+    
+    # Get column headers from the first row
+    all_headers = list(rows[0].keys())
+    
+    # Filter to relevant columns if specified
+    if relevant_columns:
+        headers = [h for h in relevant_columns if h in all_headers]
+        if not headers:
+            headers = all_headers[:5]  # Fallback to first 5 columns
+    else:
+        headers = all_headers
+    
+    # Calculate column widths
+    col_widths = {}
+    for header in headers:
+        # Start with header width
+        max_width = len(str(header))
+        # Check all rows for this column
+        for row in rows:
+            cell_width = len(str(row.get(header, '')))
+            max_width = max(max_width, cell_width)
+        col_widths[header] = max_width
+    
+    # Create the table
+    table_lines = []
+    
+    # Header separator
+    separator = "+" + "+".join("-" * (width + 2) for width in col_widths.values()) + "+"
+    
+    # Header row
+    header_row = "|"
+    for header in headers:
+        header_row += f" {header:<{col_widths[header]}} |"
+    table_lines.append(separator)
+    table_lines.append(header_row)
+    table_lines.append(separator)
+    
+    # Data rows
+    for row in rows:
+        data_row = "|"
+        for header in headers:
+            value = str(row.get(header, ''))
+            # Truncate if too long
+            if len(value) > col_widths[header]:
+                value = value[:col_widths[header]-3] + "..."
+            data_row += f" {value:<{col_widths[header]}} |"
+        table_lines.append(data_row)
+    
+    table_lines.append(separator)
+    
+    # Add summary
+    summary = f"\nTotal rows: {len(rows)}"
+    if len(headers) < len(all_headers):
+        summary += f"\nShowing {len(headers)} of {len(all_headers)} columns"
+    if error_message:
+        summary += f"\nError: {error_message}"
+    
+    return "\n".join(table_lines) + summary
+
+def display_results_summary(final_result: Dict[str, Any]) -> str:
+    """
+    Display a summary of BigQuery results with key statistics.
+    
+    Args:
+        final_result: The result dictionary from run_bigquery_validation or agent
+        
+    Returns:
+        str: Summary string
+    """
+    # Handle different result structures
+    rows = None
+    error_message = None
+    
+    # Check for run_bigquery_validation structure
+    if "query_result" in final_result:
+        rows = final_result.get("query_result")
+        error_message = final_result.get("error_message")
+    # Check for agent structure
+    elif "sql_results" in final_result:
+        rows = final_result.get("sql_results")
+        error_message = final_result.get("error_message")
+    
+    if not rows:
+        return "No results to summarize"
+    
+    if not rows:
+        return "No data rows found"
+    
+    summary_lines = []
+    summary_lines.append(f"📊 QUERY RESULTS SUMMARY")
+    summary_lines.append("=" * 40)
+    summary_lines.append(f"Total rows returned: {len(rows)}")
+    summary_lines.append(f"Total columns: {len(rows[0].keys())}")
+    
+    # Show column names
+    columns = list(rows[0].keys())
+    summary_lines.append(f"\nColumns: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}")
+    
+    # Show sample data types
+    sample_row = rows[0]
+    data_types = []
+    for col, value in sample_row.items():
+        if value is None:
+            data_types.append(f"{col}: NULL")
+        elif isinstance(value, (int, float)):
+            data_types.append(f"{col}: {type(value).__name__}")
+        else:
+            data_types.append(f"{col}: {type(value).__name__}")
+    
+    summary_lines.append(f"\nSample data types:")
+    for dt in data_types[:5]:
+        summary_lines.append(f"  {dt}")
+    
+    if error_message:
+        summary_lines.append(f"\n⚠️  Error: {error_message}")
+    
+    return "\n".join(summary_lines)
+
+# sql = "SELECT * FROM `bigquery-public-data.cms_synthetic_patient_data_omop.cost` LIMIT 5"
+# result = run_bigquery_validation(sql, None)
+# print("\n" + "="*50)
+# print("BIGQUERY RESULTS SUMMARY:")
+# print("="*50)
+# print(display_results_summary(result))
+# print("\n" + "="*50)
+# print("BIGQUERY RESULTS TABLE (Key Columns):")
+# print("="*50)
+# print(display_results_as_table(result, ['cost_id', 'cost_domain_id', 'total_paid', 'paid_by_patient']))
